@@ -2,43 +2,45 @@ import cv2
 import numpy as np
 
 
-def nms(boxes, scores, nms_thr):
+def nms(bounding_boxes, confidence_scores, nms_thr):
     """Single class NMS implemented in Numpy.
 
     Args:
-        boxes (np.ndarray): shape=(N,4); N is number of boxes
-        scores (np.ndarray): the score of bboxes
+        bounding_boxes (np.ndarray): shape=(N,4); N is number of boxes
+        confidence_scores (np.ndarray): the score of bboxes
         nms_thr (float): the threshold in NMS
 
     Returns:
         List[int]: output bbox ids
     """
-    x1 = boxes[:, 0]
-    y1 = boxes[:, 1]
-    x2 = boxes[:, 2]
-    y2 = boxes[:, 3]
+    left_x = bounding_boxes[:, 0]
+    top_y = bounding_boxes[:, 1]
+    right_x = bounding_boxes[:, 2]
+    bottom_y = bounding_boxes[:, 3]
 
-    areas = (x2 - x1 + 1) * (y2 - y1 + 1)
-    order = scores.argsort()[::-1]
+    box_areas = (right_x - left_x + 1) * (bottom_y - top_y + 1)
+    sorted_indices = confidence_scores.argsort()[::-1]
 
-    keep = []
-    while order.size > 0:
-        i = order[0]
-        keep.append(i)
-        xx1 = np.maximum(x1[i], x1[order[1:]])
-        yy1 = np.maximum(y1[i], y1[order[1:]])
-        xx2 = np.minimum(x2[i], x2[order[1:]])
-        yy2 = np.minimum(y2[i], y2[order[1:]])
+    kept_indices = []
+    while sorted_indices.size > 0:
+        current_index = sorted_indices[0]
+        kept_indices.append(current_index)
+        intersection_left = np.maximum(left_x[current_index], left_x[sorted_indices[1:]])
+        intersection_top = np.maximum(top_y[current_index], top_y[sorted_indices[1:]])
+        intersection_right = np.minimum(right_x[current_index], right_x[sorted_indices[1:]])
+        intersection_bottom = np.minimum(bottom_y[current_index], bottom_y[sorted_indices[1:]])
 
-        w = np.maximum(0.0, xx2 - xx1 + 1)
-        h = np.maximum(0.0, yy2 - yy1 + 1)
-        inter = w * h
-        ovr = inter / (areas[i] + areas[order[1:]] - inter)
+        intersection_width = np.maximum(0.0, intersection_right - intersection_left + 1)
+        intersection_height = np.maximum(0.0, intersection_bottom - intersection_top + 1)
+        intersection_area = intersection_width * intersection_height
+        overlap_ratio = intersection_area / (
+            box_areas[current_index] + box_areas[sorted_indices[1:]] - intersection_area
+        )
 
-        inds = np.where(ovr <= nms_thr)[0]
-        order = order[inds + 1]
+        non_overlapping_indices = np.where(overlap_ratio <= nms_thr)[0]
+        sorted_indices = sorted_indices[non_overlapping_indices + 1]
 
-    return keep
+    return kept_indices
 
 
 def multiclass_nms(boxes, scores, nms_thr, score_thr):

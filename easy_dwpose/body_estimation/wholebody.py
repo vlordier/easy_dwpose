@@ -8,7 +8,7 @@ from .pose import inference_pose
 class Wholebody:
     """detect human pose by dwpose"""
 
-    def __init__(self, model_det, model_pose, device="cpu"):
+    def __init__(self, model_det, model_pose, device="cpu") -> None:
         device = str(device)
 
         if device == "cpu":
@@ -23,10 +23,14 @@ class Wholebody:
                 provider_options = [{"device_id": 0}]
 
         self.session_det = onnxruntime.InferenceSession(
-            path_or_bytes=model_det, providers=providers, provider_options=provider_options
+            path_or_bytes=model_det,
+            providers=providers,
+            provider_options=provider_options,
         )
         self.session_pose = onnxruntime.InferenceSession(
-            path_or_bytes=model_pose, providers=providers, provider_options=provider_options
+            path_or_bytes=model_pose,
+            providers=providers,
+            provider_options=provider_options,
         )
 
     def __call__(self, oriImg):

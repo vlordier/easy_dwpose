@@ -1,26 +1,92 @@
 [tool.poetry]
 name = "easy_dwpose"
 version = "1.0.2"
-description = ""
-authors = []
+description = "Easy-to-use DWPose (improved OpenPose) implementation for ControlNet skeleton generation"
+authors = ["Igor Feelippov <igor@example.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+homepage = "https://github.com/reallyigor/easy_dwpose"
+repository = "https://github.com/reallyigor/easy_dwpose"
+keywords = ["dwpose", "openpose", "controlnet", "pose-estimation", "computer-vision", "skeleton-detection"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Topic :: Multimedia :: Graphics",
+]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-torch = "^2.2.2"
+torch = "^2.4.0"
 opencv-python = "^4.10.0.84"
 numpy = "^1.26.4"
-omegaconf = "2.3.0"
-onnxruntime = { version = "1.16.2", markers = "sys_platform == 'darwin'" }
-onnxruntime-gpu = { version = "1.16.2", markers = "sys_platform == 'linux'" }
+omegaconf = "^2.3.0"
+onnxruntime = { version = "^1.19.0", markers = "sys_platform == 'darwin'" }
+onnxruntime-gpu = { version = "^1.19.0", markers = "sys_platform == 'linux'" }
 loguru = "^0.7.2"
-tqdm = "^4.66.5"
-imageio = "^2.9.0"
-huggingface_hub = "^0.24.6"
-matplotlib = "^3.9.2"
+tqdm = "^4.67.0"
+imageio = "^2.36.0"
+huggingface_hub = "^0.32.0"
+matplotlib = "^3.9.4"
 
-[tool.poetry.dev-dependencies]
-pytest = "^6.2.5"
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-cov = "^6.0.0"
+pytest-xdist = "^3.6.0"
+pytest-mock = "^3.14.0"
+pre-commit = "^4.2.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["C90", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "E501", "F841", "F401", "F811", "I", "TYP"]
+ignore = ["N", "ANN003", "ANN"]
+fixable = ["ALL"]
+extend-select = ["T201"]
+mccabe = { max-complexity = 9 }
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = ["ANN", "TYP", "D", "F821", "F401", "PLR0913"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "-ra",
+    "-q",
+    "--strict-markers",
+    "--strict-config",
+]
+testpaths = ["tests"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "parametrize: parametrized tests",
+    "smoke: marks tests as smoke tests for basic functionality",
+]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+filterwarnings = [
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::RuntimeWarning",
+]
+# Pytest collection configuration
+norecursedirs = [".*", "build", "dist", "*.egg"]

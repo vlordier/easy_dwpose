@@ -6,3 +6,10 @@ test*.png
 checkpoints/
 ./*.png
 dist/
+.venv/
+.ruff_cache/
+*.egg-info/
+*.egg
+*.log
+*.coverage
+.mypy_cache/
