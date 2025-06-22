@@ -54,14 +54,16 @@ class TestDWposeDetector:
         [
             "cpu",
             "сpu",  # Cyrillic character test
+            "mps",  # Apple Silicon MPS support
         ],
     )
     def test_detector_initialization_valid_devices(self, device):
         """Test detector initialization with valid device strings."""
-        detector = DWposeDetector(device=device)
-        assert detector is not None
-        assert hasattr(detector, "pose_estimation")
-        assert detector.pose_estimation is not None
+        with patch("torch.backends.mps.is_available", return_value=True):
+            detector = DWposeDetector(device=device)
+            assert detector is not None
+            assert hasattr(detector, "pose_estimation")
+            assert detector.pose_estimation is not None
 
     def test_detector_initialization_default(self):
         """Test detector initialization with default parameters."""
