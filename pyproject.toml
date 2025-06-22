@@ -1,8 +1,27 @@
 [tool.poetry]
 name = "easy_dwpose"
 version = "1.0.2"
-description = ""
-authors = []
+description = "Easy-to-use DWPose (improved OpenPose) implementation for ControlNet skeleton generation"
+authors = ["Igor Feelippov <igor@example.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+homepage = "https://github.com/reallyigor/easy_dwpose"
+repository = "https://github.com/reallyigor/easy_dwpose"
+keywords = ["dwpose", "openpose", "controlnet", "pose-estimation", "computer-vision", "skeleton-detection"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Topic :: Multimedia :: Graphics",
+]
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -18,7 +37,7 @@ imageio = "^2.36.0"
 huggingface_hub = "^0.32.0"
 matplotlib = "^3.9.4"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
 pytest-cov = "^6.0.0"
 pytest-xdist = "^3.6.0"
