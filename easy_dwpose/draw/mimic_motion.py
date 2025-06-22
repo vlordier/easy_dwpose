@@ -93,7 +93,13 @@ def draw_bodypose(canvas, candidate, subset, score):
             conf = score[n][i]
             x = int(x * W)
             y = int(y * H)
-            cv2.circle(canvas, (int(x), int(y)), 4, alpha_blend_color(colors[i], conf), thickness=-1)
+            cv2.circle(
+                canvas,
+                (int(x), int(y)),
+                4,
+                alpha_blend_color(colors[i], conf),
+                thickness=-1,
+            )
 
     return canvas
 

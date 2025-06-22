@@ -1,8 +1,8 @@
-import torch
 import argparse
 from pathlib import Path
 
 import cv2
+import torch
 from loguru import logger
 from tqdm.auto import tqdm
 
@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     detector = DWposeDetector(device=device)
-    logger.info(f"Loaded detector")
+    logger.info("Loaded detector")
 
     logger.info(f"Starting inference on folder {args.input}")
     files = sorted(args.input.iterdir())

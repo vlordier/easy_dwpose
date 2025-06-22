@@ -16,7 +16,9 @@ class DWposeDetector:
         hf_hub_download("RedHash/DWPose", "yolox_l.onnx", local_dir="./checkpoints")
         hf_hub_download("RedHash/DWPose", "dw-ll_ucoco_384.onnx", local_dir="./checkpoints")
         self.pose_estimation = Wholebody(
-            device=device, model_det="checkpoints/yolox_l.onnx", model_pose="checkpoints/dw-ll_ucoco_384.onnx"
+            device=device,
+            model_det="checkpoints/yolox_l.onnx",
+            model_pose="checkpoints/dw-ll_ucoco_384.onnx",
         )
 
     def _format_pose(self, candidates, scores, width, height):

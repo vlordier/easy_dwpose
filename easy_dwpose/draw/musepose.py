@@ -12,22 +12,11 @@ eps = 0.01
 
 
 def smart_width(d):
-    if d < 5:
-        return 1
-    elif d < 10:
-        return 2
-    elif d < 20:
-        return 3
-    elif d < 40:
-        return 4
-    elif d < 80:
-        return 5
-    elif d < 160:
-        return 6
-    elif d < 320:
-        return 7
-    else:
-        return 8
+    thresholds = [5, 10, 20, 40, 80, 160, 320]
+    for i, threshold in enumerate(thresholds):
+        if d < threshold:
+            return i + 1
+    return 8
 
 
 def draw_bodypose(canvas, candidate, subset):
@@ -226,7 +215,7 @@ def draw_pose(pose, height, width, draw_face):
     canvas = np.zeros(shape=(height, width, 3), dtype=np.uint8)
     canvas = draw_bodypose(canvas, bodies, body_scores)
     canvas = draw_handpose(canvas, hands)
-    if draw_face == True:
+    if draw_face:
         canvas = draw_facepose(canvas, faces)
 
     return canvas

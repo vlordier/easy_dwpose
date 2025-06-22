@@ -1,8 +1,17 @@
-from typing import List, Tuple
+from dataclasses import dataclass
+from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
 import onnxruntime as ort
+
+
+@dataclass
+class WarpConfig:
+    """Configuration for warp matrix calculation."""
+
+    shift: Tuple[float, float] = (0.0, 0.0)
+    inv: bool = False
 
 
 def preprocess(
@@ -158,7 +167,11 @@ def _fix_aspect_ratio(bbox_scale: np.ndarray, aspect_ratio: float) -> np.ndarray
         np.ndarray: The reshaped image scale in (2, )
     """
     w, h = np.hsplit(bbox_scale, [1])
-    bbox_scale = np.where(w > h * aspect_ratio, np.hstack([w, w / aspect_ratio]), np.hstack([h * aspect_ratio, h]))
+    bbox_scale = np.where(
+        w > h * aspect_ratio,
+        np.hstack([w, w / aspect_ratio]),
+        np.hstack([h * aspect_ratio, h]),
+    )
     return bbox_scale
 
 
@@ -201,8 +214,7 @@ def get_warp_matrix(
     scale: np.ndarray,
     rot: float,
     output_size: Tuple[int, int],
-    shift: Tuple[float, float] = (0.0, 0.0),
-    inv: bool = False,
+    config: Optional[WarpConfig] = None,
 ) -> np.ndarray:
     """Calculate the affine transformation matrix that can warp the bbox area
     in the input image to the output size.
@@ -214,15 +226,16 @@ def get_warp_matrix(
         rot (float): Rotation angle (degree).
         output_size (np.ndarray[2, ] | list(2,)): Size of the
             destination heatmaps.
-        shift (0-100%): Shift translation ratio wrt the width/height.
-            Default (0., 0.).
-        inv (bool): Option to inverse the affine transform direction.
-            (inv=False: src->dst or inv=True: dst->src)
+        config (WarpConfig): Configuration for warp matrix calculation.
+            Contains shift and inv parameters.
 
     Returns:
         np.ndarray: A 2x3 transformation matrix
     """
-    shift = np.array(shift)
+    if config is None:
+        config = WarpConfig()
+    shift = np.array(config.shift)
+    inv = config.inv
     src_w = scale[0]
     dst_w = output_size[0]
     dst_h = output_size[1]
@@ -253,37 +266,34 @@ def get_warp_matrix(
 
 
 def top_down_affine(
-    input_size: dict, bbox_scale: dict, bbox_center: dict, img: np.ndarray
+    input_size: Tuple[int, int],
+    scale: np.ndarray,
+    center: np.ndarray,
+    img: np.ndarray,
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Get the bbox image as the model input by affine transform.
+    """Top-down affine transformation.
 
     Args:
-        input_size (dict): The input size of the model.
-        bbox_scale (dict): The bbox scale of the img.
-        bbox_center (dict): The bbox center of the img.
+        input_size (tuple): Input image size in shape (w, h).
+        scale (np.ndarray): The bbox scale of the img.
+        center (np.ndarray): The bbox center of the img.
         img (np.ndarray): The original image.
 
     Returns:
-        tuple: A tuple containing center and scale.
-        - np.ndarray[float32]: img after affine transform.
-        - np.ndarray[float32]: bbox scale after affine transform.
+        tuple:
+        - resized_img (np.ndarray): Resized image.
+        - scale (np.ndarray): Rescaled image scale.
     """
-    w, h = input_size
-    warp_size = (int(w), int(h))
+    # get shape of image
+    img.shape[:2]
 
-    # reshape bbox to fixed aspect ratio
-    bbox_scale = _fix_aspect_ratio(bbox_scale, aspect_ratio=w / h)
+    # calculate the transformation matrix
+    warp_mat = get_warp_matrix(center, scale, 0, input_size)
 
-    # get the affine matrix
-    center = bbox_center
-    scale = bbox_scale
-    rot = 0
-    warp_mat = get_warp_matrix(center, scale, rot, output_size=(w, h))
+    # do affine transformation
+    resized_img = cv2.warpAffine(img, warp_mat, input_size, flags=cv2.INTER_LINEAR)
 
-    # do affine transform
-    img = cv2.warpAffine(img, warp_mat, warp_size, flags=cv2.INTER_LINEAR)
-
-    return img, bbox_scale
+    return resized_img, scale
 
 
 def get_simcc_maximum(simcc_x: np.ndarray, simcc_y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -330,8 +340,8 @@ def get_simcc_maximum(simcc_x: np.ndarray, simcc_y: np.ndarray) -> Tuple[np.ndar
     return locs, vals
 
 
-def decode(simcc_x: np.ndarray, simcc_y: np.ndarray, simcc_split_ratio) -> Tuple[np.ndarray, np.ndarray]:
-    """Modulate simcc distribution with Gaussian.
+def decode(simcc_x: np.ndarray, simcc_y: np.ndarray, simcc_split_ratio: float) -> Tuple[np.ndarray, np.ndarray]:
+    """Decode simcc output with Gaussian.
 
     Args:
         simcc_x (np.ndarray[K, Wx]): model predicted simcc in x.

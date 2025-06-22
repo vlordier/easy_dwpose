@@ -1,17 +1,17 @@
-import torch
 import argparse
-from typing import Optional
+from typing import Optional, Tuple
 
 import cv2
 import imageio
 import numpy as np
+import torch
 from loguru import logger
 from tqdm.auto import tqdm
 
 from easy_dwpose import DWposeDetector
 
 
-def load_video(input_path: str, max_video_len: Optional[int] = None) -> list[np.ndarray]:
+def load_video(input_path: str, max_video_len: Optional[int] = None) -> Tuple[list[np.ndarray], int]:
     cap = cv2.VideoCapture(input_path)
     if not cap.isOpened():
         raise ValueError(f"Can't open video file {input_path}")
@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     detector = DWposeDetector(device=device)
-    logger.info(f"Loaded detector")
+    logger.info("Loaded detector")
 
     logger.info(f"Starting inference on video {args.input}")
     video, fps = load_video(args.input, args.max_video_len)

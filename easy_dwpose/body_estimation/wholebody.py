@@ -23,10 +23,14 @@ class Wholebody:
                 provider_options = [{"device_id": 0}]
 
         self.session_det = onnxruntime.InferenceSession(
-            path_or_bytes=model_det, providers=providers, provider_options=provider_options
+            path_or_bytes=model_det,
+            providers=providers,
+            provider_options=provider_options,
         )
         self.session_pose = onnxruntime.InferenceSession(
-            path_or_bytes=model_pose, providers=providers, provider_options=provider_options
+            path_or_bytes=model_pose,
+            providers=providers,
+            provider_options=provider_options,
         )
 
     def __call__(self, oriImg):
