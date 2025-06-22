@@ -44,6 +44,10 @@ def preprocess(
         # get center and scale
         center, scale = bbox_xyxy2cs(bbox, padding=1.25)
 
+        # fix aspect ratio to match model input size
+        aspect_ratio = input_size[0] / input_size[1]  # w/h
+        scale = _fix_aspect_ratio(scale, aspect_ratio)
+
         # do affine transformation
         resized_img, scale = top_down_affine(input_size, scale, center, img)
 
