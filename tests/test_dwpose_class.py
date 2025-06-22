@@ -77,11 +77,17 @@ class TestDWposeDetector:
         [
             ("pil", Image.Image),
             ("np", np.ndarray),
+            ("json", str),
+            ("dict", dict),
         ],
     )
     def test_forward_output_types(self, detector, sample_image, output_type, expected_type):
         """Test forward pass with different output types."""
-        result = detector(sample_image, output_type=output_type)
+        if output_type in ["json", "dict"]:
+            result = detector(sample_image, output_type=output_type, draw_pose=None)
+        else:
+            result = detector(sample_image, output_type=output_type)
+
         assert result is not None
         assert isinstance(result, expected_type)
 
@@ -90,8 +96,20 @@ class TestDWposeDetector:
             assert result.shape[2] == 3  # RGB channels
         elif output_type == "pil":
             width, height = result.size
-            assert width > 0
-            assert height > 0
+            assert width > 0 and height > 0
+        elif output_type == "json":
+            # Validate JSON format
+            import json
+
+            parsed = json.loads(result)
+            assert isinstance(parsed, dict)
+            expected_keys = ["bodies", "body_scores", "hands", "hands_scores", "faces", "faces_scores"]
+            for key in expected_keys:
+                assert key in parsed
+        elif output_type == "dict":
+            expected_keys = ["bodies", "body_scores", "hands", "hands_scores", "faces", "faces_scores"]
+            for key in expected_keys:
+                assert key in result
 
     def test_forward_dict_output_no_drawing(self, detector, sample_image):
         """Test forward pass returning pose dictionary without drawing."""
@@ -111,7 +129,7 @@ class TestDWposeDetector:
         invalid_types = ["invalid", "jpeg", "png", 123, None]
 
         for invalid_type in invalid_types:
-            with pytest.raises(ValueError, match="output_type should be 'pil' or 'np'"):
+            with pytest.raises(ValueError, match="output_type should be"):
                 detector(sample_image, output_type=invalid_type)
 
     # Resolution Tests

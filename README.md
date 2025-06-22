@@ -48,8 +48,17 @@ device = "cuda:0" if torch.cuda.is_available() else ("mps" if torch.backends.mps
 detector = DWposeDetector(device=device)
 input_image = Image.open("assets/pose.png").convert("RGB")
 
+# Generate skeleton image
 skeleton = detector(input_image, output_type="pil", include_hands=True, include_face=True)
 skeleton.save("skeleton.png")
+
+# Or get pose data as JSON
+pose_json = detector(input_image, output_type="json", draw_pose=None)
+print(pose_json)
+
+# Or get pose data as Python dictionary
+pose_dict = detector(input_image, output_type="dict", draw_pose=None)
+print(pose_dict.keys())  # ['bodies', 'body_scores', 'hands', 'hands_scores', 'faces', 'faces_scores']
 ```
 
 <table align="center">
@@ -73,6 +82,12 @@ skeleton.save("skeleton.png")
 
 ```bash
 python scripts/inference_on_video.py --input assets/dance.mp4 --output_path result.mp4
+
+# Or generate JSON pose data for each frame
+python scripts/inference_on_video.py --input assets/dance.mp4 --output_path result.mp4 --output_type json
+
+# Or generate both video and JSON
+python scripts/inference_on_video.py --input assets/dance.mp4 --output_path result.mp4 --output_type both
 ```
 
 <table align="center">
@@ -96,7 +111,106 @@ python scripts/inference_on_video.py --input assets/dance.mp4 --output_path resu
 
 ```bash
 python scripts/inference_on_folder.py --input assets/ --output_path results/
+
+# Or generate JSON pose data for each image
+python scripts/inference_on_folder.py --input assets/ --output_path results/ --output_type json
+
+# Or generate both images and JSON
+python scripts/inference_on_folder.py --input assets/ --output_path results/ --output_type both
 ```
+
+## Output Types
+
+Easy DWPose supports multiple output formats:
+
+### Image Outputs
+- **`"pil"`**: Returns a PIL Image object (default for drawing functions)
+- **`"np"`**: Returns a NumPy array (RGB format)
+
+### Data Outputs
+- **`"dict"`**: Returns pose data as a Python dictionary
+- **`"json"`**: Returns pose data as a JSON string
+
+### Pose Data Structure
+
+When using `output_type="dict"` or `output_type="json"`, the returned data contains:
+
+```python
+{
+    "bodies": [...],        # Body keypoints (18 points per person)
+    "body_scores": [...],   # Confidence scores for body keypoints
+    "hands": [...],         # Hand keypoints (21 points per hand, left then right)
+    "hands_scores": [...],  # Confidence scores for hand keypoints
+    "faces": [...],         # Face landmarks (68 points per face)
+    "faces_scores": [...]   # Confidence scores for face landmarks
+}
+```
+
+**Note**: To get pose data without generating images, set `draw_pose=None` in your call.
+
+### Enhanced Part-Specific Detection
+
+Easy DWPose now supports extracting specific body parts independently:
+
+```python
+from PIL import Image
+from easy_dwpose import DWposeDetector
+
+detector = DWposeDetector()
+input_image = Image.open("assets/pose.png").convert("RGB")
+
+# Get only body keypoints (no hands or face)
+body_only = detector.get_body_only(input_image, output_type="dict")
+print(body_only.keys())  # ['bodies', 'body_scores']
+
+# Get only hand keypoints
+hands_only = detector.get_hands_only(input_image, output_type="json")
+
+# Get only face landmarks
+face_only = detector.get_face_only(input_image, output_type="dict")
+
+# Get whole body (all parts) - equivalent to default behavior
+wholebody = detector.get_wholebody(input_image, output_type="pil")
+
+# Custom combinations using the main detector
+body_and_hands = detector(
+    input_image,
+    output_type="dict",
+    include_body=True,
+    include_hands=True,
+    include_face=False
+)
+
+face_and_hands = detector(
+    input_image,
+    output_type="json",
+    include_body=False,
+    include_hands=True,
+    include_face=True
+)
+```
+
+#### Available Methods:
+- **`get_body_only()`**: Extract only body pose (18 keypoints)
+- **`get_hands_only()`**: Extract only hand keypoints (21 points per hand)
+- **`get_face_only()`**: Extract only face landmarks (68 points)
+- **`get_wholebody()`**: Extract all parts (body + hands + face)
+
+#### Flexible Output Control:
+You can also use the main detector with granular control:
+
+```python
+# Mix and match any combination of parts
+result = detector(
+    input_image,
+    output_type="dict",  # or "json", "pil", "np"
+    include_body=True,   # Include body keypoints
+    include_hands=False, # Skip hand keypoints
+    include_face=True    # Include face landmarks
+)
+```
+
+This gives you complete flexibility to extract exactly the pose data you need, reducing output size and processing time when you only need specific body parts.
 
 ### Custom skeleton drawing
 
