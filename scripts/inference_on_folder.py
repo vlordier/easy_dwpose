@@ -12,6 +12,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, default="assets/")
     parser.add_argument("--output_path", type=Path, default="results/")
+    parser.add_argument(
+        "--output_type",
+        type=str,
+        choices=["image", "json", "both"],
+        default="image",
+        help="Output type: 'image' for skeleton images, 'json' for pose data, 'both' for both",
+    )
     args = parser.parse_args()
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -30,10 +37,20 @@ if __name__ == "__main__":
         image = cv2.imread(str(image_path))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-        result = detector(image, output_type="np", include_hands=True, include_face=True)
-        result = cv2.cvtColor(result, cv2.COLOR_RGB2BGR)
+        if args.output_type in ["image", "both"]:
+            result = detector(image, output_type="np", include_hands=True, include_face=True)
+            result = cv2.cvtColor(result, cv2.COLOR_RGB2BGR)
 
-        output_path = str(image_path).replace(str(args.input), str(args.output_path))
-        cv2.imwrite(output_path, result)
+            output_path = str(image_path).replace(str(args.input), str(args.output_path))
+            cv2.imwrite(output_path, result)
+
+        if args.output_type in ["json", "both"]:
+            pose_data = detector(image, output_type="json", draw_pose=None)
+
+            json_output_path = str(image_path).replace(str(args.input), str(args.output_path))
+            json_output_path = json_output_path.rsplit(".", 1)[0] + ".json"
+
+            with open(json_output_path, "w") as f:
+                f.write(pose_data)
 
     logger.info("Done")
