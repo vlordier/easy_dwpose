@@ -108,19 +108,21 @@ def postprocess(
         - keypoints (np.ndarray): Rescaled keypoints.
         - scores (np.ndarray): Model predict scores.
     """
-    all_key = []
-    all_score = []
-    for i in range(len(outputs)):
+    collected_keypoints = []
+    collected_scores = []
+    for batch_index in range(len(outputs)):
         # use simcc to decode
-        simcc_x, simcc_y = outputs[i]
-        keypoints, scores = decode(simcc_x, simcc_y, simcc_split_ratio)
+        simcc_x_coords, simcc_y_coords = outputs[batch_index]
+        decoded_keypoints, decoded_scores = decode(simcc_x_coords, simcc_y_coords, simcc_split_ratio)
 
         # rescale keypoints
-        keypoints = keypoints / model_input_size * scale[i] + center[i] - scale[i] / 2
-        all_key.append(keypoints[0])
-        all_score.append(scores[0])
+        rescaled_keypoints = (
+            decoded_keypoints / model_input_size * scale[batch_index] + center[batch_index] - scale[batch_index] / 2
+        )
+        collected_keypoints.append(rescaled_keypoints[0])
+        collected_scores.append(decoded_scores[0])
 
-    return np.array(all_key), np.array(all_score)
+    return np.array(collected_keypoints), np.array(collected_scores)
 
 
 def bbox_xyxy2cs(bbox: np.ndarray, padding: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:

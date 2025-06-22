@@ -8,7 +8,7 @@ from .pose import inference_pose
 class Wholebody:
     """detect human pose by dwpose"""
 
-    def __init__(self, model_det, model_pose, device="cpu"):
+    def __init__(self, model_det, model_pose, device="cpu") -> None:
         device = str(device)
 
         if device == "cpu":

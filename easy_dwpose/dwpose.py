@@ -12,7 +12,7 @@ from easy_dwpose.draw import draw_openpose
 
 
 class DWposeDetector:
-    def __init__(self, device: str = "сpu"):
+    def __init__(self, device: str = "сpu") -> None:
         hf_hub_download("RedHash/DWPose", "yolox_l.onnx", local_dir="./checkpoints")
         hf_hub_download("RedHash/DWPose", "dw-ll_ucoco_384.onnx", local_dir="./checkpoints")
         self.pose_estimation = Wholebody(
@@ -21,73 +21,75 @@ class DWposeDetector:
             model_pose="checkpoints/dw-ll_ucoco_384.onnx",
         )
 
-    def _format_pose(self, candidates, scores, width, height):
-        num_candidates, _, locs = candidates.shape
+    def _format_pose(self, candidate_keypoints, keypoint_scores, image_width, image_height):
+        num_persons, _, coordinate_dims = candidate_keypoints.shape
 
-        candidates[..., 0] /= float(width)
-        candidates[..., 1] /= float(height)
+        candidate_keypoints[..., 0] /= float(image_width)
+        candidate_keypoints[..., 1] /= float(image_height)
 
-        bodies = candidates[:, :18].copy()
-        bodies = bodies.reshape(num_candidates * 18, locs)
+        body_keypoints = candidate_keypoints[:, :18].copy()
+        body_keypoints = body_keypoints.reshape(num_persons * 18, coordinate_dims)
 
-        body_scores = scores[:, :18]
-        for i in range(len(body_scores)):
-            for j in range(len(body_scores[i])):
-                if body_scores[i][j] > 0.3:
-                    body_scores[i][j] = int(18 * i + j)
+        body_confidence_scores = keypoint_scores[:, :18]
+        for person_index in range(len(body_confidence_scores)):
+            for joint_index in range(len(body_confidence_scores[person_index])):
+                if body_confidence_scores[person_index][joint_index] > 0.3:
+                    body_confidence_scores[person_index][joint_index] = int(18 * person_index + joint_index)
                 else:
-                    body_scores[i][j] = -1
+                    body_confidence_scores[person_index][joint_index] = -1
 
-        faces = candidates[:, 24:92]
-        faces_scores = scores[:, 24:92]
+        face_keypoints = candidate_keypoints[:, 24:92]
+        face_confidence_scores = keypoint_scores[:, 24:92]
 
-        hands = np.vstack([candidates[:, 92:113], candidates[:, 113:]])
-        hands_scores = np.vstack([scores[:, 92:113], scores[:, 113:]])
+        hand_keypoints = np.vstack([candidate_keypoints[:, 92:113], candidate_keypoints[:, 113:]])
+        hand_confidence_scores = np.vstack([keypoint_scores[:, 92:113], keypoint_scores[:, 113:]])
 
-        pose = dict(
-            bodies=bodies,
-            body_scores=body_scores,
-            hands=hands,
-            hands_scores=hands_scores,
-            faces=faces,
-            faces_scores=faces_scores,
+        formatted_pose = dict(
+            bodies=body_keypoints,
+            body_scores=body_confidence_scores,
+            hands=hand_keypoints,
+            hands_scores=hand_confidence_scores,
+            faces=face_keypoints,
+            faces_scores=face_confidence_scores,
         )
 
-        return pose
+        return formatted_pose
 
     @torch.inference_mode()
     def __call__(
         self,
-        image: Union[PIL.Image.Image, np.ndarray],
+        input_image: Union[PIL.Image.Image, np.ndarray],
         detect_resolution: int = 512,
         draw_pose: Optional[Callable] = draw_openpose,
         output_type: str = "pil",
         **kwargs,
     ) -> Union[PIL.Image.Image, np.ndarray, Dict]:
-        if type(image) != np.ndarray:
-            image = np.array(image.convert("RGB"))
+        if type(input_image) != np.ndarray:
+            input_image = np.array(input_image.convert("RGB"))
 
-        image = image.copy()
-        original_height, original_width, _ = image.shape
+        processed_image = input_image.copy()
+        original_image_height, original_image_width, _ = processed_image.shape
 
-        image = resize_image(image, target_resolution=detect_resolution)
-        height, width, _ = image.shape
+        resized_image = resize_image(processed_image, target_resolution=detect_resolution)
+        resized_height, resized_width, _ = resized_image.shape
 
-        candidates, scores = self.pose_estimation(image)
+        detected_keypoints, keypoint_scores = self.pose_estimation(resized_image)
 
-        pose = self._format_pose(candidates, scores, width, height)
+        formatted_pose_data = self._format_pose(detected_keypoints, keypoint_scores, resized_width, resized_height)
 
         if not draw_pose:
-            return pose
+            return formatted_pose_data
 
-        pose_image = draw_pose(pose, height=height, width=width, **kwargs)
-        pose_image = cv2.resize(pose_image, (original_width, original_height), cv2.INTER_LANCZOS4)
+        rendered_pose_image = draw_pose(formatted_pose_data, height=resized_height, width=resized_width, **kwargs)
+        final_pose_image = cv2.resize(
+            rendered_pose_image, (original_image_width, original_image_height), cv2.INTER_LANCZOS4
+        )
 
         if output_type == "pil":
-            pose_image = PIL.Image.fromarray(pose_image)
+            final_pose_image = PIL.Image.fromarray(final_pose_image)
         elif output_type == "np":
             pass
         else:
             raise ValueError("output_type should be 'pil' or 'np'")
 
-        return pose_image
+        return final_pose_image
