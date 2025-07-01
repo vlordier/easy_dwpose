@@ -14,7 +14,22 @@ class Wholebody:
         if device == "cpu":
             providers = ["CPUExecutionProvider"]
             provider_options = None
+        elif device.startswith("mps"):
+            # MPS (Metal Performance Shaders) for Apple Silicon using CoreML
+            coreml_provider = (
+                "CoreMLExecutionProvider",
+                {
+                    "ModelFormat": "MLProgram",
+                    "MLComputeUnits": "ALL",  # CPU, GPU & Neural Engine
+                    "RequireStaticInputShapes": "0",  # allow dynamic shapes
+                    "EnableOnSubgraphs": "0",  # subgraphs disabled by default
+                },
+            )
+            # Use Any to handle mixed provider types (tuple and string)
+            providers = [coreml_provider, "CPUExecutionProvider"]  # type: ignore
+            provider_options = None
         else:
+            # CUDA devices
             providers = ["CUDAExecutionProvider"]
             if ":" in device:
                 gpu_id = int(device.split(":")[1])

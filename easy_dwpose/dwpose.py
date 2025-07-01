@@ -12,7 +12,10 @@ from easy_dwpose.draw import draw_openpose
 
 
 class DWposeDetector:
-    def __init__(self, device: str = "сpu") -> None:
+    def __init__(self, device: str = "cpu") -> None:
+        # Validate and potentially adjust device
+        device = self._validate_device(device)
+
         hf_hub_download("RedHash/DWPose", "yolox_l.onnx", local_dir="./checkpoints")
         hf_hub_download("RedHash/DWPose", "dw-ll_ucoco_384.onnx", local_dir="./checkpoints")
         self.pose_estimation = Wholebody(
@@ -20,6 +23,19 @@ class DWposeDetector:
             model_det="checkpoints/yolox_l.onnx",
             model_pose="checkpoints/dw-ll_ucoco_384.onnx",
         )
+
+    def _validate_device(self, device: str) -> str:
+        """Validate and potentially adjust the device string."""
+        # Fix common typo: 'сpu' (Cyrillic) -> 'cpu' (Latin)
+        if device == "сpu":
+            device = "cpu"
+
+        # Handle MPS availability for Apple Silicon
+        if device == "mps":
+            if not torch.backends.mps.is_available():
+                return "cpu"
+
+        return device
 
     def _format_pose(self, candidate_keypoints, keypoint_scores, image_width, image_height):
         num_persons, _, coordinate_dims = candidate_keypoints.shape

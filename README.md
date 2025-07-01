@@ -14,7 +14,8 @@ Me: <a href="https://x.com/igorfeelippov"><img alt="X account" src="https://img.
 3. Generic class to either import in Jupyter or to run on a video/images.
 4. Code that is easy to read and modify.
 5. Choose GPU for multi-gpu inference!
-6. Custom drawing functions: convenient interface for modifying *how* you draw skeletons.
+6. **MPS support for Apple Silicon devices!**
+7. Custom drawing functions: convenient interface for modifying *how* you draw skeletons. you draw skeletons.
 
 ## Installation
 
@@ -42,8 +43,8 @@ from PIL import Image
 
 from easy_dwpose import DWposeDetector
 
-# You can use a different GPU, e.g. "cuda:1"
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
+# You can use different devices: "cpu", "cuda:0", or "mps" (Apple Silicon)
+device = "cuda:0" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu")
 detector = DWposeDetector(device=device)
 input_image = Image.open("assets/pose.png").convert("RGB")
 
@@ -113,6 +114,33 @@ input_image = Image.open("assets/pose.png").convert("RGB")
 skeleton = detector(input_image, output_type="pil", draw_pose=draw_pose_musepose, draw_face=False)
 skeleton.save("skeleton.png")
 ```
+
+## Device Support
+
+Easy DWPose supports multiple compute devices:
+
+- **CPU**: `device="cpu"` - Works on all systems
+- **CUDA**: `device="cuda"` or `device="cuda:0"` - For NVIDIA GPUs
+- **MPS**: `device="mps"` - For Apple Silicon devices (M1/M2/M3 chips)
+
+### Apple Silicon (MPS) Support
+
+On Apple Silicon devices, you can use the MPS (Metal Performance Shaders) backend for improved performance:
+
+```python
+import torch
+from easy_dwpose import DWposeDetector
+
+# Check if MPS is available
+if torch.backends.mps.is_available():
+    detector = DWposeDetector(device="mps")
+    print("Using MPS device for optimized performance on Apple Silicon!")
+else:
+    detector = DWposeDetector(device="cpu")
+    print("MPS not available, using CPU")
+```
+
+**Note**: Easy DWPose utilizes CoreML ExecutionProvider for ONNX Runtime on Apple Silicon devices, providing native hardware acceleration through the Neural Engine, GPU, and CPU. This offers significant performance improvements compared to CPU-only execution.
 
 ## Acknowledgement
 
